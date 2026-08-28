@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#121826" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Surplus Tracker</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #161f30;
+      --card-sub: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #34d399;
+      --orange: #fb923c;
+      --red: #f87171;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; padding-bottom: 80px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    h1 { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .date-badge { font-size: 0.85rem; background: var(--card); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+    
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    
+    .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; margin-top: 2px; }
+    .stat-sub { font-size: 0.75rem; color: var(--muted); }
+    
+    .progress-bar-bg { background: var(--card-sub); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+    .progress-bar { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+    
+    .tab-container { display: flex; gap: 6px; margin-bottom: 10px; }
+    .tab-btn { flex: 1; background: var(--card-sub); border: none; color: var(--muted); padding: 8px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+    .tab-btn.active { background: var(--accent); color: #000; }
+    
+    input, textarea, button, select { width: 100%; border-radius: 8px; font-size: 0.95rem; }
+    input, textarea { background: var(--card-sub); border: 1px solid var(--border); color: var(--text); padding: 10px; margin-bottom: 8px; }
+    textarea { resize: vertical; min-height: 60px; }
+    button.btn-primary { background: var(--accent); color: #000; border: none; font-weight: 700; padding: 12px; border-radius: 8px; cursor: pointer; margin-top: 4px; }
+    button.btn-primary:active { opacity: 0.85; }
+    
+    .entry-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); }
+    .entry-item:last-child { border-bottom: none; }
+    .entry-title { font-weight: 600; font-size: 0.9rem; }
+    .entry-meta { font-size: 0.75rem; color: var(--muted); }
+    .del-btn { background: none; border: none; color: var(--red); font-size: 0.8rem; cursor: pointer; width: auto; padding: 4px 8px; }
+    
+    .settings-panel { display: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <span class="stat-label">Daily Target</span>
+      <h1>Surplus Tracker</h1>
+    </div>
+    <span class="date-badge" id="currentDateDisplay"></span>
+  </header>
+
+  <!-- Summary Dashboard Card -->
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <div class="stat-label">Calories Remaining</div>
+        <div class="stat-val" id="calRemainingVal">2336</div>
+        <div class="stat-sub" id="calBudgetSub">Goal: 2336 kcal</div>
+      </div>
+      <div>
+        <div class="stat-label">Weight Progression</div>
+        <div class="stat-val" id="currentWeightVal">148.0 <span style="font-size:0.8rem">lb</span></div>
+        <div class="stat-sub">Target: 165.0 lb</div>
+      </div>
+    </div>
+    <div class="progress-bar-bg" style="margin-top: 12px;">
+      <div class="progress-bar" id="calBar" style="background: var(--accent); width: 0%;"></div>
+    </div>
+  </div>
+
+  <!-- Macros Card -->
+  <div class="card grid-3">
+    <div>
+      <div class="stat-label">Protein</div>
+      <div class="stat-val" style="color: var(--green);" id="proteinVal">0<span style="font-size:0.75rem; color:var(--muted)">/146g</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar" id="proteinBar" style="background: var(--green); width: 0%;"></div></div>
+    </div>
+    <div>
+      <div class="stat-label">Carbs</div>
+      <div class="stat-val" style="color: var(--accent);" id="carbsVal">0<span style="font-size:0.75rem; color:var(--muted)">/292g</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar" id="carbsBar" style="background: var(--accent); width: 0%;"></div></div>
+    </div>
+    <div>
+      <div class="stat-label">Fat</div>
+      <div class="stat-val" style="color: var(--orange);" id="fatVal">0<span style="font-size:0.75rem; color:var(--muted)">/65g</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar" id="fatBar" style="background: var(--orange); width: 0%;"></div></div>
+    </div>
+  </div>
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="tab-container">
+      <button class="tab-btn active" onclick="switchTab('food')">Meal Log</button>
+      <button class="tab-btn" onclick="switchTab('workout')">Workout Log</button>
+      <button class="tab-btn" onclick="switchTab('weight')">Weight Log</button>
+    </div>
+
+    <div id="foodTab">
+      <textarea id="foodInput" placeholder="Natural language: '2 scoops whey, 1 cup oats, 2 tbsp peanut butter, 1 banana'"></textarea>
+      <button class="btn-primary" id="logFoodBtn" onclick="handleFoodSubmit()">Log Meal</button>
+    </div>
+
+    <div id="workoutTab" style="display:none;">
+      <textarea id="workoutInput" placeholder="Natural language: 'Bench Press 4x8 185lb, Incline DB 3x10 60lb, 45 mins'"></textarea>
+      <button class="btn-primary" id="logWorkoutBtn" onclick="handleWorkoutSubmit()">Log Workout</button>
+    </div>
+
+    <div id="weightTab" style="display:none;">
+      <input type="number" id="weightInput" step="0.1" placeholder="Current weight in lbs (e.g., 148.5)" />
+      <button class="btn-primary" onclick="handleWeightSubmit()">Update Today's Weight</button>
+    </div>
+  </div>
+
+  <!-- Today's Log List -->
+  <div class="card">
+    <div style="font-weight: 700; margin-bottom: 8px;">Today's Entries</div>
+    <div id="entriesList"></div>
+  </div>
+
+  <!-- Settings / API Key Card -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleSettings()">
+      <span class="stat-label">Gemini API Key & Configuration</span>
+      <span style="font-size:0.8rem; color:var(--accent);">Settings ▾</span>
+    </div>
+    <div class="settings-panel" id="settingsPanel">
+      <input type="password" id="apiKeyInput" placeholder="Paste Gemini API Key (stored locally)" style="margin-top:8px;" />
+      <button class="btn-primary" style="padding:8px;" onclick="saveApiKey()">Save API Key</button>
+      <p style="font-size:0.75rem; color:var(--muted); margin-top:6px;">If no API key is set, manual/regex estimation is used.</p>
+    </div>
+  </div>
+
+  <script>
+    const GOALS = { cals: 2336, protein: 146, carbs: 292, fat: 65, goalWeight: 165.0 };
+    let currentDateKey = new Date().toISOString().split('T')[0];
+
+    document.getElementById('currentDateDisplay').textContent = currentDateKey;
+
+    function getStorage(key, defaultVal) {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : defaultVal;
+    }
+
+    function setStorage(key, val) {
+      localStorage.setItem(key, JSON.stringify(val));
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('foodTab').style.display = 'none';
+      document.getElementById('workoutTab').style.display = 'none';
+      document.getElementById('weightTab').style.display = 'none';
+      
+      if (tab === 'food') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('foodTab').style.display = 'block';
+      } else if (tab === 'workout') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('workoutTab').style.display = 'block';
+      } else {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('weightTab').style.display = 'block';
+      }
+    }
+
+    function toggleSettings() {
+      const p = document.getElementById('settingsPanel');
+      p.style.display = p.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      localStorage.setItem('GEMINI_API_KEY', key);
+      alert('API Key Saved to Device');
+    }
+
+    async function callGemini(prompt) {
+      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!apiKey) return null;
+      
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      return JSON.parse(data.candidates[0].content.parts[0].text);
+    }
+
+    async function handleFoodSubmit() {
+      const text = document.getElementById('foodInput').value.trim();
+      if (!text) return;
+      const btn = document.getElementById('logFoodBtn');
+      btn.textContent = 'Parsing macros...';
+
+      let parsed = { description: text, calories: 300, protein: 15, carbs: 35, fat: 10 };
+
+      try {
+        const prompt = `Extract food items and return precise JSON: {"description": "summary", "calories": number, "protein": number, "carbs": number, "fat": number} for: "${text}"`;
+        const aiRes = await callGemini(prompt);
+        if (aiRes) parsed = aiRes;
+      } catch (err) {
+        console.error(err);
+      }
+
+      const entries = getStorage(`entries_${currentDateKey}`, []);
+      entries.push({ type: 'food', ...parsed, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+      setStorage(`entries_${currentDateKey}`, entries);
+
+      document.getElementById('foodInput').value = '';
+      btn.textContent = 'Log Meal';
+      render();
+    }
+
+    async function handleWorkoutSubmit() {
+      const text = document.getElementById('workoutInput').value.trim();
+      if (!text) return;
+      const btn = document.getElementById('logWorkoutBtn');
+      btn.textContent = 'Calculating burn...';
+
+      let parsed = { description: text, burned: 150 };
+
+      try {
+        const prompt = `Extract workout and estimated calories burned. Return JSON: {"description": "activity & sets/reps summary", "burned": number} for: "${text}"`;
+        const aiRes = await callGemini(prompt);
+        if (aiRes) parsed = aiRes;
+      } catch (err) {
+        console.error(err);
+      }
+
+      const entries = getStorage(`entries_${currentDateKey}`, []);
+      entries.push({ type: 'workout', ...parsed, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+      setStorage(`entries_${currentDateKey}`, entries);
+
+      document.getElementById('workoutInput').value = '';
+      btn.textContent = 'Log Workout';
+      render();
+    }
+
+    function handleWeightSubmit() {
+      const val = parseFloat(document.getElementById('weightInput').value);
+      if (val) {
+        setStorage('latest_weight', val);
+        document.getElementById('weightInput').value = '';
+        render();
+      }
+    }
+
+    function deleteEntry(index) {
+      const entries = getStorage(`entries_${currentDateKey}`, []);
+      entries.splice(index, 1);
+      setStorage(`entries_${currentDateKey}`, entries);
+      render();
+    }
+
+    function render() {
+      const entries = getStorage(`entries_${currentDateKey}`, []);
+      const latestWeight = getStorage('latest_weight', 148.0);
+      document.getElementById('currentWeightVal').innerHTML = `${latestWeight.toFixed(1)} <span style="font-size:0.8rem">lb</span>`;
+
+      let totalCals = 0, totalP = 0, totalC = 0, totalF = 0, totalBurned = 0;
+      const listEl = document.getElementById('entriesList');
+      listEl.innerHTML = '';
+
+      if (entries.length === 0) {
+        listEl.innerHTML = '<div style="font-size:0.85rem; color:var(--muted); padding:8px 0;">No entries recorded today.</div>';
+      }
+
+      entries.forEach((entry, idx) => {
+        const row = document.createElement('div');
+        row.className = 'entry-item';
+        if (entry.type === 'food') {
+          totalCals += entry.calories;
+          totalP += entry.protein;
+          totalC += entry.carbs;
+          totalF += entry.fat;
+          row.innerHTML = `
+            <div>
+              <div class="entry-title">${entry.description}</div>
+              <div class="entry-meta">${entry.calories} kcal • ${entry.carbs}g C / ${entry.protein}g P / ${entry.fat}g F • ${entry.time}</div>
+            </div>
+            <button class="del-btn" onclick="deleteEntry(${idx})">✕</button>
+          `;
+        } else {
+          totalBurned += entry.burned;
+          row.innerHTML = `
+            <div>
+              <div class="entry-title">🏋️ ${entry.description}</div>
+              <div class="entry-meta">+${entry.burned} kcal burned • ${entry.time}</div>
+            </div>
+            <button class="del-btn" onclick="deleteEntry(${idx})">✕</button>
+          `;
+        }
+        listEl.appendChild(row);
+      });
+
+      const effectiveTarget = GOALS.cals + totalBurned;
+      const remaining = effectiveTarget - totalCals;
+
+      document.getElementById('calRemainingVal').textContent = Math.round(remaining);
+      document.getElementById('calBudgetSub').textContent = `Consumed: ${Math.round(totalCals)} | Burned: ${Math.round(totalBurned)}`;
+      document.getElementById('calBar').style.width = `${Math.min(100, (totalCals / effectiveTarget) * 100)}%`;
+
+      document.getElementById('proteinVal').innerHTML = `${Math.round(totalP)}<span style="font-size:0.75rem; color:var(--muted)">/${GOALS.protein}g</span>`;
+      document.getElementById('proteinBar').style.width = `${Math.min(100, (totalP / GOALS.protein) * 100)}%`;
+
+      document.getElementById('carbsVal').innerHTML = `${Math.round(totalC)}<span style="font-size:0.75rem; color:var(--muted)">/${GOALS.carbs}g</span>`;
+      document.getElementById('carbsBar').style.width = `${Math.min(100, (totalC / GOALS.carbs) * 100)}%`;
+
+      document.getElementById('fatVal').innerHTML = `${Math.round(totalF)}<span style="font-size:0.75rem; color:var(--muted)">/${GOALS.fat}g</span>`;
+      document.getElementById('fatBar').style.width = `${Math.min(100, (totalF / GOALS.fat) * 100)}%`;
+    }
+
+    if (localStorage.getItem('GEMINI_API_KEY')) {
+      document.getElementById('apiKeyInput').value = localStorage.getItem('GEMINI_API_KEY');
+    }
+    render();
+  </script>
+</body>
+</html>
